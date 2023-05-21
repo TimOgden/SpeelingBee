@@ -59,6 +59,7 @@ def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
         index_ = letters.index(special_character)
         letters[index_], letters[3] = letters[3], letters[index_]
 
+    all_words.sort(key=lambda x: x['word'])
     return {
         'primary_word': daily_word,
         'primary_character': special_character,
