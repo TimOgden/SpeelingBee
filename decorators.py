@@ -12,5 +12,9 @@ def dbc(func):
             password=os.getenv('MYSQL_PASSWD')
         )
         kwargs['db_conn'] = connection.cursor()
-        return func(*args, **kwargs)
+        res = func(*args, **kwargs)
+        connection.commit()
+        connection.cursor().close()
+        connection.close()
+        return res
     return wrapper
