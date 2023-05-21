@@ -1,11 +1,12 @@
 import datetime
 import itertools
+import json
 import os
 
 import MySQLdb.cursors
 
 from decorators import dbc
-from flask import Flask, request
+from flask import Flask, request, render_template, url_for
 from google.oauth2 import id_token
 import requests
 from google.auth.transport import requests as rq
@@ -117,6 +118,15 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
                 'foundBy': None,
                 'validWord': False,
                 'hasCenterLetter': True}
+
+
+@app.route('/date/<date>/summary', methods=['GET'])
+def summary(date: str):
+    words = requests.get(f'http://localhost:5000/date/{date}/words')
+    words = json.loads(words.content)
+    return render_template('summary.html', date=date, rank='Good', all_letters=words['all_letters'],
+                           all_words=words['all_words'])
+
 
 
 if __name__ == "__main__":
