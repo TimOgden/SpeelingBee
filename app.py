@@ -128,6 +128,17 @@ def summary(date: str):
                            all_words=words['all_words'])
 
 
+@app.route('/date/<date>/todaysHints', methods=['GET'])
+def todays_hints(date: str):
+    words = requests.get(f'http://localhost:5000/date/{date}/words')
+    words = json.loads(words.content)
+
+    num_words = len(words['all_words'])
+    num_points = sum(points(word['word'])[0] for word in words['all_words'])
+    num_pangrams = len([word for word in words['all_words'] if len(set(word['word'])) == 7])
+    return render_template('todays_hints.html', date=date, num_words=num_words,
+                           num_points=num_points, num_pangrams=num_pangrams)
+
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
