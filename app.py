@@ -51,9 +51,12 @@ def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
 
     else:
         daily_word, special_character = daily_word
-        db_conn.execute('select word, foundBy, profilePicture from speelingbee.words where date=%s', (date, ))
+        db_conn.execute('select word, foundBy from speelingbee.words where date=%s', (date, ))
         all_words = db_conn.fetchall()
-    all_words = [{'word': d[0], 'foundBy': d[1], 'profilePicture': d[2]} for d in all_words]
+
+    db_conn.execute('select email, profilePicture from users.users;')
+    users = dict(db_conn.fetchall())
+    all_words = [{'word': d[0], 'foundBy': d[1], 'profilePicture': users[d[1]] if d[1] else None} for d in all_words]
     letters = list(set(daily_word))
 
     if letters[3] != special_character:
@@ -99,8 +102,9 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
     if row := db_conn.fetchone():
         already_found = row[-1] is not None
         if not already_found:
-            db_conn.execute('update speelingbee.words set foundBy=%s, profilePicture=%s '
-                            'where date=%s and word=%s', (user, profile_picture, date, word))
+            db_conn.execute('update speelingbee.words set foundBy=%s '
+                            'where date=%s and word=%s', (user, date, word))
+            db_conn.execute('update users.users set profilePicture=%s where email=%s', (profile_picture, user))
             num_points, is_pangram = points(word)
             return {'alreadyFound': already_found,
                     'points': num_points,
