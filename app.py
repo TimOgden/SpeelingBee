@@ -11,7 +11,7 @@ from google.oauth2 import id_token
 import requests
 from google.auth.transport import requests as rq
 
-from speeling_bee import get_all_words, get_primary_word, points
+from speeling_bee import get_all_words, get_primary_word, points, update_points_gathered
 
 app = Flask(__name__)
 
@@ -37,7 +37,7 @@ def login_google(db_conn: MySQLdb.cursors.Cursor):
 def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
     date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
-    db_conn.execute('select dailyword, specialcharacter from speelingbee.dailyword where date=%s', (date, ))
+    db_conn.execute('select dailyword, specialcharacter, pointsgathered from speelingbee.dailyword where date=%s', (date, ))
     daily_word = db_conn.fetchone()
 
     if not daily_word:
@@ -46,17 +46,20 @@ def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
         db_conn.execute('insert into speelingbee.dailyword (date, dailyword, specialcharacter) VALUES (%s, %s, %s)',
                         (date, daily_word, special_character))
         all_words = get_all_words(daily_word, special_character)
-        for word in all_words:
+        for word in [d[0] for d in all_words]:
             db_conn.execute('insert into speelingbee.words (date, word) VALUES (%s, %s)', (date, word))
 
     else:
-        daily_word, special_character = daily_word
+        daily_word, special_character, points_gathered = daily_word
         db_conn.execute('select word, foundBy from speelingbee.words where date=%s', (date, ))
         all_words = db_conn.fetchall()
 
     db_conn.execute('select email, profilePicture from users.users;')
     users = dict(db_conn.fetchall())
     all_words = [{'word': d[0], 'foundBy': d[1], 'profilePicture': users[d[1]] if d[1] else None} for d in all_words]
+
+    max_points = sum((points(word['word'])[0] for word in all_words))
+    current_points = sum((points(word['word'])[0] for word in all_words if word['foundBy'] is not None))
     letters = list(set(daily_word))
 
     if letters[3] != special_character:
@@ -68,7 +71,9 @@ def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
         'primary_word': daily_word,
         'primary_character': special_character,
         'all_letters': letters,
-        'all_words': all_words
+        'all_words': all_words,
+        'max_points': max_points,
+        'current_points': current_points
     }
 
 
@@ -106,6 +111,8 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
                             'where date=%s and word=%s', (user, date, word))
             db_conn.execute('update users.users set profilePicture=%s where email=%s', (profile_picture, user))
             num_points, is_pangram = points(word)
+
+            current_points = update_points_gathered(db_conn, date, num_points)
             return {'alreadyFound': already_found,
                     'points': num_points,
                     'isPangram': is_pangram,
