@@ -3,18 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <title>Summary for {{date}}</title>
+    <link rel="stylesheet" type="text/css" href="styles/summary.css" />
 </head>
 <body>
     <h2>Summary for {{date}}</h2>
     <p>Rank: {{rank}}.</p>
     <p>{{all_letters}}</p>
-    <ul>
-        {% for word in all_words %}
-            <li>
-                <p>{{ word['word'] }}</p>
-                <p>{{ word['foundBy'] }}</p>
-            </li>
-        {% endfor %}
-    </ul>
+    <div id="foundWordsContainer">
+        <ul>
+            {% for word in all_words %}
+                <li class="foundWordItem">
+                    <p>
+                        {% if word_to_pangram[word['word']] %}
+                            <b>{{ word['word'].capitalize() }}</b>
+                        {% else %}
+                            {{ word['word'].capitalize() }}
+                        {% endif %}
+                    </p>
+                    {% if word['foundBy'] %}
+                        <img class="profile-picture" src="{{word['profilePicture']}}">
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>

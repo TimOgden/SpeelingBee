@@ -18,6 +18,29 @@ def get_all_words(word: str, special_character: str) -> list[tuple[str, Union[st
     return [(word, None) for word in all_words]
 
 
+def get_rank(current_points: int, max_points: int) -> str:
+    score = current_points / max_points
+    if score == 1:
+        return 'Queen Bee'
+    elif score >= 0.7:
+        return 'Genius'
+    elif score >= 0.5:
+        return 'Amazing'
+    elif score >= 0.4:
+        return 'Great'
+    elif score >= 0.25:
+        return 'Nice'
+    elif score >= 0.15:
+        return 'Solid'
+    elif score >= 0.08:
+        return 'Good'
+    elif score >= 0.05:
+        return 'Moving Up'
+    elif score >= 0.02:
+        return 'Good Start'
+    return 'Beginner'
+
+
 def get_primary_word() -> tuple[str, str]:
     word = np.random.choice(PRIMARY_WORDS)
     return word, np.random.choice([d for d in word])

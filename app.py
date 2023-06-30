@@ -11,7 +11,7 @@ from google.oauth2 import id_token
 import requests
 from google.auth.transport import requests as rq
 
-from speeling_bee import get_all_words, get_primary_word, points, update_points_gathered
+from speeling_bee import get_all_words, get_primary_word, points, update_points_gathered, get_rank
 
 app = Flask(__name__)
 
@@ -138,8 +138,15 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
 def summary(date: str):
     words = requests.get(f'http://localhost:5000/date/{date}/words')
     words = json.loads(words.content)
-    return render_template('summary.html', date=date, rank='Good', all_letters=words['all_letters'],
-                           all_words=words['all_words'])
+
+    word_to_pangram = {word['word']: points(word['word'])[1] for word in words['all_words']}
+    for pangram_word in {k: v for k, v in word_to_pangram.items() if v}:
+        index_ = next(i for i, v in enumerate(words['all_words']) if v['word'] == pangram_word)
+        words['all_words'].insert(0, words['all_words'].pop(index_))
+    rank = get_rank(words['current_points'], words['max_points'])
+
+    return render_template('summary.html', date=date, rank=rank, all_letters=words['all_letters'],
+                           all_words=words['all_words'], word_to_pangram=word_to_pangram)
 
 
 @app.route('/date/<date>/todaysHints', methods=['GET'])
