@@ -2,11 +2,13 @@ import datetime
 from typing import Union
 
 import MySQLdb
-from english_words import get_english_words_set
 import numpy as np
 
-ENGLISH_WORDS = [d.upper() for d in get_english_words_set(['gcide'], lower=True, alpha=True) if len(d) > 3]
-PRIMARY_WORDS = [d for d in ENGLISH_WORDS if len(set(d)) == 7]
+
+with open('words_74k.txt', 'r') as f:
+    ENGLISH_WORDS = [d.replace('\n', '') for d in f.readlines()]
+with open('primary_words_74k.txt', 'r') as f:
+    PRIMARY_WORDS = [d.replace('\n', '') for d in f.readlines()]
 
 
 def get_all_words(word: str, special_character: str) -> list[tuple[str, Union[str, None]]]:
