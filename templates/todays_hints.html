@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Speeling Bee Grid</title>
     <link rel="icon" href="static/cute_bee.png" type="image/icon type">
+    <link rel="stylesheet" type="text/css" href="styles/hints.css" />
 </head>
 <body>
   <p><b>{{primary_character}}</b> {{' '.join(all_letters[1:])}}</p>
@@ -11,11 +12,11 @@
   <table>
     <thead>
         <tr>
-            <th></th>
+            <th class="hintColumn"></th>
             {% for word_len in word_lengths %}
-                <th>{{word_len}}</th>
+                <th class="hintColumn">{{word_len}}</th>
             {% endfor %}
-            <th><b>&Sigma;</b></th>
+            <th class="hintColumn"><b>&Sigma;</b></th>
         </tr>
     </thead>
     <tbody>
@@ -28,10 +29,18 @@
                         {{letter}}
                     {% endif %}
                 </td>
+                {% for count in letter_to_counts[letter] %}
+                    <td>
+                        {{count}}
+                    </td>
+                {% endfor %}
             </tr>
         {% endfor %}
         <tr>
             <td><b>&Sigma;</b></td>
+            {% for total in totals %}
+                <td>{{total}}</td>
+            {% endfor %}
         </tr>
     </tbody>
   </table>

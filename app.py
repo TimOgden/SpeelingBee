@@ -154,16 +154,29 @@ def todays_hints(date: str):
     words = requests.get(f'http://localhost:5000/date/{date}/words')
     words = json.loads(words.content)
 
-    words['all_letters'].insert(0, words['all_letters'].pop(words['all_letters'].index(words['primary_character'])))
+    primary_character = words['all_letters'].pop(words['all_letters'].index(words['primary_character']))
+    words['all_letters'] = sorted(words['all_letters'])
+    words['all_letters'].insert(0, primary_character)
 
     num_words = len(words['all_words'])
     num_points = sum(points(word['word'])[0] for word in words['all_words'])
     num_pangrams = len([word for word in words['all_words'] if len(set(word['word'])) == 7])
 
     word_lengths = set([len(word['word']) for word in words['all_words']])
+
+    letter_to_counts = {}
+    for letter in words['all_letters']:
+        letter_to_counts[letter] = [len([word for word in words['all_words']
+                                         if word['word'][0] == letter and len(word['word']) == length])
+                                    for length in sorted(list(word_lengths))]
+        letter_to_counts[letter].append(sum(letter_to_counts[letter]))
+
+    totals = [sum(letter_to_counts[letter][i] for letter in letter_to_counts)
+              for i in range(len(letter_to_counts[words['primary_character']]))]
     return render_template('todays_hints.html', date=date, num_words=num_words,
                            num_points=num_points, num_pangrams=num_pangrams, word_lengths=word_lengths,
-                           all_letters=words['all_letters'], primary_character=words['primary_character'])
+                           all_letters=words['all_letters'], primary_character=words['primary_character'],
+                           letter_to_counts=letter_to_counts, totals=totals)
 
 
 if __name__ == "__main__":
