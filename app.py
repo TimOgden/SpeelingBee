@@ -154,11 +154,16 @@ def todays_hints(date: str):
     words = requests.get(f'http://localhost:5000/date/{date}/words')
     words = json.loads(words.content)
 
+    words['all_letters'].insert(0, words['all_letters'].pop(words['all_letters'].index(words['primary_character'])))
+
     num_words = len(words['all_words'])
     num_points = sum(points(word['word'])[0] for word in words['all_words'])
     num_pangrams = len([word for word in words['all_words'] if len(set(word['word'])) == 7])
+
+    word_lengths = set([len(word['word']) for word in words['all_words']])
     return render_template('todays_hints.html', date=date, num_words=num_words,
-                           num_points=num_points, num_pangrams=num_pangrams)
+                           num_points=num_points, num_pangrams=num_pangrams, word_lengths=word_lengths,
+                           all_letters=words['all_letters'], primary_character=words['primary_character'])
 
 
 if __name__ == "__main__":
