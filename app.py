@@ -173,10 +173,15 @@ def todays_hints(date: str):
 
     totals = [sum(letter_to_counts[letter][i] for letter in letter_to_counts)
               for i in range(len(letter_to_counts[words['primary_character']]))]
+
+    all_two_letter_pairs = set([word['word'][:2] for word in words['all_words']])
+    all_two_letter_counts = {pair: len(list(word for word in words['all_words'] if word['word'][:2] == pair))
+                             for pair in all_two_letter_pairs}
     return render_template('todays_hints.html', date=date, num_words=num_words,
                            num_points=num_points, num_pangrams=num_pangrams, word_lengths=word_lengths,
                            all_letters=words['all_letters'], primary_character=words['primary_character'],
-                           letter_to_counts=letter_to_counts, totals=totals)
+                           letter_to_counts=letter_to_counts, totals=totals,
+                           two_letter_counts=all_two_letter_counts)
 
 
 if __name__ == "__main__":
