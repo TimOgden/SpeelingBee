@@ -91,7 +91,7 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
     try:
         special_character = row[0]
     except IndexError:
-        requests.get(f'http://localhost:5000/date/{date.date()}/words')
+        requests.get(os.path.join(os.getenv("routes/nodejs_server"), f'date/{date.date()}/words'))
         db_conn.execute('select specialcharacter from speelingbee.dailyword where date=%s', (date,))
         special_character = db_conn.fetchone()[0]
 
@@ -136,7 +136,7 @@ def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
 
 @app.route('/date/<date>/summary', methods=['GET'])
 def summary(date: str):
-    words = requests.get(f'http://localhost:5000/date/{date}/words')
+    words = requests.get(os.path.join(os.getenv('routes/nodejs_server'), f'date/{date}/words'))
     words = json.loads(words.content)
 
     word_to_pangram = {word['word']: points(word['word'])[1] for word in words['all_words']}
@@ -151,7 +151,7 @@ def summary(date: str):
 
 @app.route('/date/<date>/todaysHints', methods=['GET'])
 def todays_hints(date: str):
-    words = requests.get(f'http://localhost:5000/date/{date}/words')
+    words = requests.get(os.path.join(os.getenv('routes/nodejs_server'), f'{date}/words'))
     words = json.loads(words.content)
 
     primary_character = words['all_letters'].pop(words['all_letters'].index(words['primary_character']))
