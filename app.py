@@ -175,8 +175,14 @@ def todays_hints(date: str):
               for i in range(len(letter_to_counts[words['primary_character']]))]
 
     all_two_letter_pairs = set([word['word'][:2] for word in words['all_words']])
-    all_two_letter_counts = {pair: len(list(word for word in words['all_words'] if word['word'][:2] == pair))
-                             for pair in all_two_letter_pairs}
+    all_two_letter_counts = []
+    for letter in words['all_letters']:
+        row = []
+        for pair in [word for word in all_two_letter_pairs if word[0] == letter]:
+            all_words_matching_start = [word for word in words['all_words'] if word['word'][:2] == pair]
+            found = [word for word in all_words_matching_start if word['foundBy'] is not None]
+            row.append((pair, len(found), len(all_words_matching_start)))
+        all_two_letter_counts.append(row)
     return render_template('todays_hints.html', date=date, num_words=num_words,
                            num_points=num_points, num_pangrams=num_pangrams, word_lengths=word_lengths,
                            all_letters=words['all_letters'], primary_character=words['primary_character'],
