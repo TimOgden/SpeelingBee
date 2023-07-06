@@ -1,14 +1,15 @@
 import datetime
+import os
 from typing import Union
 
 import MySQLdb
 import numpy as np
 
 
-with open('words_74k.txt', 'r') as f:
-    ENGLISH_WORDS = [d.replace('\n', '') for d in f.readlines()]
-with open('primary_words_74k.txt', 'r') as f:
-    PRIMARY_WORDS = [d.replace('\n', '') for d in f.readlines()]
+with open(os.getenv('words_loc'), 'r') as f:
+    ENGLISH_WORDS = f.read().split(',')
+with open(os.getenv('primary_words_loc'), 'r') as f:
+    PRIMARY_WORDS = f.read().split(',')
 
 
 def get_all_words(word: str, special_character: str) -> list[tuple[str, Union[str, None]]]:
