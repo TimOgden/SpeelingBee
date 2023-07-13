@@ -3,7 +3,8 @@ import itertools
 import json
 import os
 
-import MySQLdb.cursors
+import sqlalchemy
+from sqlalchemy.engine.base import Connection
 
 from decorators import dbc
 from flask import Flask, request, render_template, url_for
@@ -23,39 +24,42 @@ def index():
 
 @app.route('/loginGoogle', methods=['POST'])
 @dbc
-def login_google(db_conn: MySQLdb.cursors.Cursor):
+def login_google(db_conn: Connection):
     token = request.get_json()['credential']
     id_info = id_token.verify_oauth2_token(token, rq.Request(), os.getenv('GOOGLE_CLIENT_ID'))
-    db_conn.execute('select * from users.users where email=%s', (id_info['email'],))
-    user_info = db_conn.fetchone()
+    user_info = db_conn.execute(sqlalchemy.text('select * from users.users where email=:email',
+                                                email=id_info['email'])).fetchone()
     id_info['preferredColor'] = user_info[2]
     return id_info
 
 
 @app.route('/date/<date>/words', methods=['GET'])
 @dbc
-def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
+def get_words_of_day(date: str, db_conn: Connection):
     date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
-    db_conn.execute('select dailyword, specialcharacter, pointsgathered from speelingbee.dailyword where date=%s', (date, ))
-    daily_word = db_conn.fetchone()
+    daily_word = db_conn.execute(sqlalchemy.text('select dailyword, specialcharacter, pointsgathered '
+                                                 'from speelingbee.dailyword where date=:date'),
+                                 parameters={'date': date}).fetchone()
 
     if not daily_word:
         daily_word, special_character = get_primary_word()
 
-        db_conn.execute('insert into speelingbee.dailyword (date, dailyword, specialcharacter) VALUES (%s, %s, %s)',
-                        (date, daily_word, special_character))
+        db_conn.execute(sqlalchemy.text('insert into speelingbee.dailyword (date, dailyword, specialcharacter) '
+                                        'VALUES (:date, :daily_word, :special_character)'),
+                        parameters={'date': date, 'daily_word': daily_word, 'special_character': special_character})
         all_words = get_all_words(daily_word, special_character)
         for word in [d[0] for d in all_words]:
-            db_conn.execute('insert into speelingbee.words (date, word) VALUES (%s, %s)', (date, word))
+            db_conn.execute(sqlalchemy.text('insert into speelingbee.words (date, word) VALUES (:date, :word)'),
+                            parameters={'date': date, 'word': word})
 
     else:
         daily_word, special_character, points_gathered = daily_word
-        db_conn.execute('select word, foundBy from speelingbee.words where date=%s', (date, ))
-        all_words = db_conn.fetchall()
+        all_words = db_conn.execute(sqlalchemy.text('select word, foundBy from speelingbee.words where date=:date'),
+                                    parameters={'date': date}).fetchall()
 
-    db_conn.execute('select email, profilePicture from users.users;')
-    users = dict(db_conn.fetchall())
+    users = db_conn.execute(sqlalchemy.text('select email, profilePicture from users.users;')).fetchall()
+    users = dict(users)
     all_words = [{'word': d[0], 'foundBy': d[1], 'profilePicture': users[d[1]] if d[1] else None} for d in all_words]
 
     max_points = sum((points(word['word'])[0] for word in all_words))
@@ -79,7 +83,7 @@ def get_words_of_day(date: str, db_conn: MySQLdb.cursors.Cursor):
 
 @app.route('/date/<date>/user/<user>/submit', methods=['POST'])
 @dbc
-def submit(date: str, user: str, db_conn: MySQLdb.cursors.Cursor):
+def submit(date: str, user: str, db_conn: Connection):
     date = datetime.datetime.strptime(date, '%Y-%m-%d')
     json_obj = request.get_json()
     word = json_obj['word']

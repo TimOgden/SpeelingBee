@@ -2,6 +2,9 @@ import datetime
 import os
 from typing import Union
 
+from sqlalchemy.engine.base import Connection
+
+
 import MySQLdb
 import numpy as np
 
@@ -47,7 +50,7 @@ def get_primary_word() -> tuple[str, str]:
     return word, np.random.choice([d for d in word])
 
 
-def update_points_gathered(dbc: MySQLdb.cursors.Cursor, date: datetime.datetime, points_: int) -> int:
+def update_points_gathered(dbc: Connection, date: datetime.datetime, points_: int) -> int:
     dbc.execute('select pointsgathered from speelingbee.dailyword where date=%s', (date,))
     current_points_gathered = dbc.fetchone()[0]
 

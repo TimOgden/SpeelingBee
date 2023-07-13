@@ -1,20 +1,32 @@
 import os
 from functools import wraps
 import MySQLdb
+from google.cloud.sql.connector import Connector
+import sqlalchemy
 
 
 def dbc(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        connection = MySQLdb.connect(
-            host=os.getenv('MYSQL_HOST'),
-            user=os.getenv('MYSQL_USER'),
-            password=os.getenv('MYSQL_PASSWD')
+        # initialize parameters
+        connection_name = 'speelingbee:us-central1:speeling-bee'
+
+        connector = Connector()
+        def getconn():
+            conn = connector.connect(
+                connection_name,
+                'pymysql',
+                user=os.getenv('MYSQL_USER'),
+                password=os.getenv('MYSQL_PASSWD'),
+                db=''
+            )
+            return conn
+
+        pool = sqlalchemy.create_engine(
+            'mysql+pymysql://',
+            creator=getconn
         )
-        kwargs['db_conn'] = connection.cursor()
-        res = func(*args, **kwargs)
-        connection.commit()
-        connection.cursor().close()
-        connection.close()
-        return res
+        with pool.connect() as db_conn:
+            kwargs['db_conn'] = db_conn
+            return func(*args, **kwargs)
     return wrapper
