@@ -29,6 +29,12 @@ def login_google(db_conn: Connection):
     id_info = id_token.verify_oauth2_token(token, rq.Request(), os.getenv('GOOGLE_CLIENT_ID'))
     user_info = db_conn.execute(sqlalchemy.text('select * from users.users where email=:email'),
                                 parameters={'email': id_info['email']}).fetchone()
+    if not user_info:
+        id_info['preferredColor'] = (252, 252, 27)
+        db_conn.execute(sqlalchemy.text('insert into users.users (email, preferredColor, profilePicture)'
+                                        'VALUES (:email, :color, :pic)'),
+                        parameters={'email': id_info['email'], 'color': id_info['preferredColor'],
+                                    'pic': id_info['profilePicture']})
     id_info['preferredColor'] = user_info[2]
     return id_info
 
