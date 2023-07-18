@@ -27,8 +27,8 @@ def index():
 def login_google(db_conn: Connection):
     token = request.get_json()['credential']
     id_info = id_token.verify_oauth2_token(token, rq.Request(), os.getenv('GOOGLE_CLIENT_ID'))
-    user_info = db_conn.execute(sqlalchemy.text('select * from users.users where email=:email',
-                                                email=id_info['email'])).fetchone()
+    user_info = db_conn.execute(sqlalchemy.text('select * from users.users where email=:email'),
+                                parameters={'email': id_info['email']}).fetchone()
     id_info['preferredColor'] = user_info[2]
     return id_info
 
@@ -90,14 +90,15 @@ def submit(date: str, user: str, db_conn: Connection):
     profile_picture = json_obj['profilePicture']
 
     # reinit words
-    db_conn.execute('select specialcharacter from speelingbee.dailyword where date=%s', (date,))
-    row = db_conn.fetchone()
+    row = db_conn.execute(sqlalchemy.text('select specialcharacter from speelingbee.dailyword where date=:date'),
+                          parameters={'date': date}).fetchone()
     try:
         special_character = row[0]
     except IndexError:
         requests.get(os.path.join(os.getenv("routes/nodejs_server"), f'date/{date.date()}/words'))
-        db_conn.execute('select specialcharacter from speelingbee.dailyword where date=%s', (date,))
-        special_character = db_conn.fetchone()[0]
+        special_character = db_conn.execute(sqlalchemy.text('select specialcharacter from speelingbee.dailyword '
+                                                            'where date=:date'), parameters={'date': date})\
+            .fetchone()[0]
 
     if special_character not in word:
         return {'alreadyFound': False,
@@ -107,13 +108,16 @@ def submit(date: str, user: str, db_conn: Connection):
                 'validWord': False,
                 'hasCenterLetter': False}
 
-    db_conn.execute('select * from speelingbee.words where date=%s and word=%s', (date, word))
-    if row := db_conn.fetchone():
+    row = db_conn.execute(sqlalchemy.text('select * from speelingbee.words where date=:date and word=:word'),
+                          parameters={'date': date, 'word': word}).fetchone()
+    if row:
         already_found = row[-1] is not None
         if not already_found:
-            db_conn.execute('update speelingbee.words set foundBy=%s '
-                            'where date=%s and word=%s', (user, date, word))
-            db_conn.execute('update users.users set profilePicture=%s where email=%s', (profile_picture, user))
+            db_conn.execute(sqlalchemy.text('update speelingbee.words set foundBy=:foundBy '
+                            'where date=:date and word=:word'),
+                            parameters={'foundBy': user, 'date': date, 'word': word})
+            db_conn.execute(sqlalchemy.text('update users.users set profilePicture=:pic where email=:user'),
+                            parameters={'pic': profile_picture, 'user': user})
             num_points, is_pangram = points(word)
 
             current_points = update_points_gathered(db_conn, date, num_points)
