@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import json
+import logging
 import os
 
 import sqlalchemy
@@ -29,12 +30,14 @@ def login_google(db_conn: Connection):
     id_info = id_token.verify_oauth2_token(token, rq.Request(), os.getenv('GOOGLE_CLIENT_ID'))
     user_info = db_conn.execute(sqlalchemy.text('select * from users.users where email=:email'),
                                 parameters={'email': id_info['email']}).fetchone()
+    logging.info(id_info)
     if not user_info:
         id_info['preferredColor'] = (252, 252, 27)
-        db_conn.execute(sqlalchemy.text('insert into users.users (email, preferredColor, profilePicture)'
-                                        'VALUES (:email, :color, :pic)'),
-                        parameters={'email': id_info['email'], 'color': id_info['preferredColor'],
-                                    'pic': id_info['profilePicture']})
+        # db_conn.execute(sqlalchemy.text('insert into users.users (email, preferredColor, profilePicture)'
+        #                                 'VALUES (:email, :color, :pic)'),
+        #                 parameters={'email': id_info['email'], 'color': id_info['preferredColor'],
+        #                             'pic': id_info.get('picture', '')})
+        return id_info
     id_info['preferredColor'] = user_info[2]
     return id_info
 
@@ -98,10 +101,10 @@ def submit(date: str, user: str, db_conn: Connection):
     # reinit words
     row = db_conn.execute(sqlalchemy.text('select specialcharacter from speelingbee.dailyword where date=:date'),
                           parameters={'date': date}).fetchone()
-    try:
+    if row:
         special_character = row[0]
-    except IndexError:
-        requests.get(os.path.join(os.getenv("routes/nodejs_server"), f'date/{date.date()}/words'))
+    else:
+        requests.get(url_for('get_words_of_day', date=date.strftime('%Y-%m-%d'), _external=True))
         special_character = db_conn.execute(sqlalchemy.text('select specialcharacter from speelingbee.dailyword '
                                                             'where date=:date'), parameters={'date': date})\
             .fetchone()[0]
@@ -205,4 +208,4 @@ def todays_hints(date: str):
 
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=int(os.getenv('PORT')), debug=True)

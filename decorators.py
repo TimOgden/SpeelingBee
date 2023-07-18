@@ -28,5 +28,8 @@ def dbc(func):
         )
         with pool.connect() as db_conn:
             kwargs['db_conn'] = db_conn
-            return func(*args, **kwargs)
+            res = func(*args, **kwargs)
+            db_conn.commit()
+            db_conn.close()
+            return res
     return wrapper
