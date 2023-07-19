@@ -32,11 +32,11 @@ def login_google(db_conn: Connection):
                                 parameters={'email': id_info['email']}).fetchone()
     logging.info(id_info)
     if not user_info:
-        id_info['preferredColor'] = (252, 252, 27)
-        # db_conn.execute(sqlalchemy.text('insert into users.users (email, preferredColor, profilePicture)'
-        #                                 'VALUES (:email, :color, :pic)'),
-        #                 parameters={'email': id_info['email'], 'color': id_info['preferredColor'],
-        #                             'pic': id_info.get('picture', '')})
+        db_conn.execute(sqlalchemy.text('INSERT INTO users.users (email, preferredColor, profilePicture) '
+                                        'VALUES (:email, :color, :pic)'),
+                        parameters={'email': id_info['email'], 'color': '[255, 187, 0]',
+                                    'pic': id_info.get('picture', '')})
+
         return id_info
     id_info['preferredColor'] = user_info[2]
     return id_info
